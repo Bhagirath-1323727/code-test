@@ -10,8 +10,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class CityViewModel(private val repo: CityRepo) : ViewModel() {
-    private val citiesList = MutableStateFlow<Response<List<City>>>(Response.OnLoading)
-    val cities: StateFlow<Response<List<City>>> get() = citiesList
+    private val citiesList = MutableStateFlow<Response<Map<String, List<City>>>>(Response.OnLoading)
+    val cities: StateFlow<Response<Map<String, List<City>>>> get() = citiesList
 
     init {
         fetchCities()
@@ -22,7 +22,8 @@ class CityViewModel(private val repo: CityRepo) : ViewModel() {
             try {
                 citiesList.value = Response.OnLoading
                 val cities = loadCitiesFromJson()
-                citiesList.value = Response.OnSuccess(cities)
+                val groupByCities = cities.groupBy { it.admin_name }
+                citiesList.value = Response.OnSuccess(groupByCities)
             } catch (e: Exception) {
                 citiesList.value = Response.OnError("Failed to load cities")
             }
@@ -36,7 +37,10 @@ class CityViewModel(private val repo: CityRepo) : ViewModel() {
     fun sort() {
         val currentState = citiesList.value
         if (currentState is Response.OnSuccess) {
-            citiesList.value = Response.OnSuccess(currentState.data.reversed())
+            val reversedGroupedCities =
+                currentState.data.mapValues { (_, cities) -> cities.reversed() }
+            citiesList.value = Response.OnSuccess(reversedGroupedCities)
         }
+
     }
 }
